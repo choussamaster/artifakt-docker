@@ -1,0 +1,61 @@
+version: "3"
+
+services:
+  app:
+    image: markoshust/magento-nginx:1.18-2
+    ports:
+      - "80:8000"
+      - "443:8443"
+    links:
+      - db
+      - phpfpm
+    volumes: &appvolumes
+      - ~/.composer:/var/www/.composer:cached
+      - appdata:/var/www/html
+      - sockdata:/sock
+      - ssldata:/etc/nginx/certs
+
+  phpfpm:
+    build:
+      context: ./php
+    links:
+      - db
+    env_file: env/php.env
+    volumes: *appvolumes
+    
+  db:
+    image: mariadb:10.2
+    ports:
+      - "3306:3306"
+    env_file: env/db.env
+    volumes:
+      - dbdata:/var/lib/mysql10
+
+  redis:
+    image: redis:5.0
+
+  elasticsearch:
+    build:
+      context: ./elastiksearch
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - "discovery.type=single-node"
+
+
+  # Disabling cron by default as it uses higher CPU, enable if needed
+  #cron:
+  #  image: markoshust/magento-php:7.4-fpm-0
+  #  user: root
+  #  command: /usr/local/bin/cronstart
+  #  tty: true
+  #  links:
+  #    - db
+  #  volumes: *appvolumes
+
+volumes:
+  appdata:
+  dbdata:
+  sockdata:
+  ssldata:
